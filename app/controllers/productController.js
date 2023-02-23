@@ -1,5 +1,7 @@
 const ProductModel = require("../models/Products");
-const AppResponse = require("../services/AppResponse")
+const AppResponse = require("../services/AppResponse");
+const UserProductBiddingModel = require("../models/UserProductBidding");
+const Users = require("../models/Users");
 
 const createProduct = async (req, res) => {
     try {
@@ -57,7 +59,11 @@ const getProducts = async (req, res) => {
           dateDiffs: -1
         }
       }]);
-      return AppResponse.success(res, {products})
+      const updatedProducts = []
+      for (const product of products) {
+        updatedProducts.push(await getHighestBidder(product))
+      }
+      return AppResponse.success(res, {products: updatedProducts})
     } catch (error) {
       return AppResponse.error(
         res,
@@ -71,7 +77,9 @@ const getProductById = async (req, res) => {
     try {
         const { id } = req.params;
         const product = await ProductModel.findById(id);
-        return AppResponse.success(res, {product})
+        console.log(product, 'product controller');
+        const updatedProduct = await getHighestBidder(product)
+        return AppResponse.success(res, {product: updatedProduct})
     } catch (error) {
         return AppResponse.error(
             res,
@@ -80,6 +88,30 @@ const getProductById = async (req, res) => {
       )
     }
 };
+
+const getHighestBidder = async (product) => {
+  const productCopy = JSON.parse(JSON.stringify(product))
+  if(new Date(productCopy.bidEndDate) <= new Date()) {
+    // get the highest biding for the productId
+    const userProductBiding = await UserProductBiddingModel.
+      find({productId: productCopy._id.toString()}).sort({biddingAmount: -1});
+    const userProductBidingCopy = JSON.parse(JSON.stringify(userProductBiding));
+    if(userProductBidingCopy.length) {
+      const highestBidding = userProductBidingCopy[0];
+      // get the user details for the same
+      const userDetails = await Users.findOne({userName: highestBidding.userName});
+      if(userDetails) {
+        const userDetailsCopy = JSON.parse(JSON.stringify(userDetails));
+        delete userDetailsCopy.password;
+        productCopy['biddingWinner'] = {
+          biddingAmount: highestBidding.biddingAmount,
+          ...userDetailsCopy,
+        }
+      }
+    }
+  }
+  return productCopy;
+}
 
 module.exports = {
     createProduct,

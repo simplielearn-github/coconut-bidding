@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-
+    
 const ProductSchema = new mongoose.Schema({
   producerId: {
     type: String,
@@ -41,6 +41,5 @@ const ProductSchema = new mongoose.Schema({
 }, {
   timestamps: true,
 });
-
 
 module.exports = mongoose.model("products", ProductSchema);
