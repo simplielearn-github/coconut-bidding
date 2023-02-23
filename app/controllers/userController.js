@@ -42,6 +42,20 @@ const getUsers = async (req, res) => {
     }
 };
 
+const getUserById = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const users = await UserModel.findById(id);
+    return AppResponse.success(res, {users})
+  } catch (error) {
+    return AppResponse.error(
+      res,
+      'INTERNAL SERVER ERROR',
+      error.message
+    )
+  }
+};
+
 const login = async (req, res) => {
   try {
     const user = req.body.user;
@@ -106,4 +120,5 @@ module.exports = {
   getUsers,
   login,
   deleteUserByAdmin,
+  getUserById
 };

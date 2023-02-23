@@ -17,6 +17,7 @@ rootRoute.get("/status", (req, res, next) => {
  */
 rootRoute.post("/users", usersController.createUser);
 rootRoute.get("/users", usersController.getUsers);
+rootRoute.get('/users/:id', usersController.getUserById);
 rootRoute.delete("/users/:id", usersController.deleteUserByAdmin)
 
 /**

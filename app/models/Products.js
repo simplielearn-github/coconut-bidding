@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-var XMLHttpRequest = require('xhr2');
 
 const ProductSchema = new mongoose.Schema({
   producerId: {
@@ -29,6 +28,15 @@ const ProductSchema = new mongoose.Schema({
   noOfUnits: {
     type: Number,
     default: 1
+  }, 
+  productType: {
+    type: String,
+    required: true,
+    enum: [
+      'coconut',
+      'dryCoconut',
+      'tenderCoconut'
+    ],
   }
 }, {
   timestamps: true,

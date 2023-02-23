@@ -1,6 +1,10 @@
 const mongoose = require("mongoose");
+const aadharValidator = require('aadhaar-validator');
 
 const UserSchema = new mongoose.Schema({
+  name: {
+    type: String,
+  },
   userName: {
     type: String,
     required: true,
@@ -15,6 +19,23 @@ const UserSchema = new mongoose.Schema({
     required: true,
     enum: ['PRODUCER', 'CONSUMER', 'ADMIN']
   },
+  phone: {
+    type: String,
+    required: true,
+  },
+  email: {
+    type: String,
+    required: true,
+  },
+  aadhar: {
+    type: String,
+    validate: {
+      validator: function (v) {
+        return aadharValidator.isValidNumber(v)
+      },
+      message: props => `${props.value} is not a valid aadhar number`
+    }
+  }
 }, {
   timestamps: true,
 });
