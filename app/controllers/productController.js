@@ -45,6 +45,7 @@ const getProducts = async (req, res) => {
           noOfUnits: 1,
           createdAt: 1,
           updatedAt: 1,
+          productType: 1,
           dateDiffs: {
             $dateDiff: {
               startDate: new Date(),
