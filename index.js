@@ -3,6 +3,7 @@ const cors = require("cors");
 require("dotenv").config();
 
 const UserProductBidding = require('./app/models/UserProductBidding');
+const ProductModel = require('./app/models/Products');
 const AppResponse = require("./app/services/AppResponse");
 
 const PORT = process.env.PORT;
@@ -53,6 +54,34 @@ rootRoute1.post('/userProductBidding', async (req, res) => {
       'MISSING_REQUIRED_FIELDS' 
     )
   }
+
+  const productInfo = await ProductModel.findById(productId);
+  if(!productInfo) {
+    return AppResponse.notFound(
+      res,
+      'ERR_PRODUCT_DOES_NOT_EXIST',
+      'ERR_PRODUCT_DOES_NOT_EXIST'
+    )
+  }
+
+  // get the highest bidding.
+  const productBidding = await UserProductBidding.find({productId}).sort({biddingAmount: -1})
+  if(productInfo.basePrice >= payload.biddingAmount) {
+    return AppResponse.badRequest(
+      res,
+      'ERR_BIDDING_AMOUNT_SHOULD_BE_GREATER_THAN_BASE_PRICE',
+      'ERR_BIDDING_AMOUNT_SHOULD_BE_GREATER_THAN_BASE_PRICE'
+    )
+  }
+
+  if(productBidding.length && productBidding[0].biddingAmount >= biddingAmount) {
+    return AppResponse.badRequest(
+      res,
+      'ERR_BIDDING_AMOUNT_SHOULD_BE_GREATER_THAN_LAST_BIDING_AMOUNT',
+      'ERR_BIDDING_AMOUNT_SHOULD_BE_GREATER_THAN_LAST_BIDING_AMOUNT'
+    )
+  }
+
   await UserProductBidding.findOneAndUpdate(
             {
                 userName: payload.userName,
