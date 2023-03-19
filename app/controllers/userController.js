@@ -1,5 +1,8 @@
 const UserModel = require("../models/Users");
-const AppResponse = require("../services/AppResponse")
+const AppResponse = require("../services/AppResponse");
+const { MailtrapClient } = require("mailtrap");
+const axios = require('axios');
+const pug = require('pug');
 
 const createUser = async (req, res) => {
   try {
@@ -115,10 +118,155 @@ const deleteUserByAdmin = async (req, res) => {
     }
 };
 
+const resetPassword = async (req, res) => {
+  try {
+    const user = req.body.user;
+    if(!user.email || !user.password || !user.confirmPassword) {
+      return AppResponse.badRequest(
+        res,
+        'MISSING_REQUIRED_FIELDS',
+        'MISSING_REQUIRED_FIELDS' 
+      )
+    } else if (user.password !== user.confirmPassword) {
+      return AppResponse.badRequest(
+        res,
+        'PASSWORD_DOES_NOT_MATCH',
+        'PASSWORD_DOES_NOT_MATCH' 
+      )
+    }
+
+    // check if user exists with provided email in the platform
+    const userInfo = await UserModel.findOne({email: user.email});
+    if(!userInfo) {
+      return AppResponse.notFound(
+        res,
+        'USER NOT FOUND',
+        'USER NOT FOUND' 
+      )
+    }
+
+    await UserModel.updateOne({email: userInfo.email}, {
+      $set: {
+        password: user.password
+      }
+    })
+
+    return AppResponse.success(res, {})
+  } catch (error) {
+    console.log(error);
+    throw error;
+  }
+}
+
+const forgotPassword = async (req, res) => {
+  try {
+    const user = req.body.user;
+    if(!user.email) {
+      return AppResponse.badRequest(
+        res,
+        'MISSING_REQUIRED_FIELDS',
+        'MISSING_REQUIRED_FIELDS' 
+      )
+    }
+    // check if user exists with provided email in the platform
+    const userInfo = await UserModel.findOne({email: user.email});
+    if(!userInfo) {
+      return AppResponse.notFound(
+        res,
+        'USER NOT FOUND',
+        'USER NOT FOUND' 
+      )
+    }
+
+    const metaData = {
+      name: userInfo.userName,
+      email: userInfo.email,
+      url: `http://localhost:${process.env.PORT}/reset-password?email=${userInfo.email}`
+    }
+
+    console.log('before template creation', metaData);
+    const html = await renderNotificationTemplate('app/template/password_rest_template.pug',
+      metaData, 10, 10);
+    console.log('after template creation', html);
+    // send the reset password email for the user
+    await sendResetPasswordEmail(user.email, 'Your Reset Password Request', html);
+
+    return AppResponse.success(res, {})
+  } catch (error) {
+    console.log(error);
+    throw error;
+  }
+}
+
+
+const renderNotificationTemplate = async (templatePath, data,
+      delay, times) => {
+    const html = await pug.renderFile(templatePath, data);
+    if (!html || !html.trim()) {
+        if (times - 1) {
+          return this.wait(delay)
+            .then(() => {
+              return this.renderNotificationTemplate(templatePath, data, delay, times - 1);
+            })
+            .catch((err) => {
+              Logger.error(err);
+            });
+        } else {
+          const fileRenderError =
+            new Error(`Failed to render html template:: ${templatePath} for email:: ${data.email}`);
+          console.log(fileRenderError);
+          return null;
+        }
+    } else {
+      return html;
+    }
+}
+
+const sendResetPasswordEmail = async (to, subject, html) => {
+  try {
+    const url = process.env.SENDGRID_URL;
+        const options = {
+            headers: {
+                'content-type': 'application/json',
+                'authorization': 'Bearer' + ' ' + process.env.SENDGRID_APIKEY,
+            },
+        };
+
+        const data = {
+            personalizations: [
+                {
+                    to: [
+                        {
+                            email: to,
+                        },
+                    ],
+                    subject,
+                },
+            ],
+            from: {
+                email: process.env.FROM_EMAIL,
+                name: process.env.FROM_NAME,
+            },
+            content: [
+                {
+                    type: 'text/html',
+                    value: html,
+                },
+            ],
+        };
+
+        return axios.post(url, data, options);
+  } catch (error) {
+     console.log(error);
+  }
+}
+
 module.exports = {
   createUser,
   getUsers,
   login,
   deleteUserByAdmin,
-  getUserById
+  getUserById,
+  forgotPassword,
+  resetPassword
 };
