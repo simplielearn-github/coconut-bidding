@@ -9,7 +9,6 @@ const AppResponse = require("./app/services/AppResponse");
 const multer = require('multer');
 const inMemoryStorage = multer.memoryStorage();
 const singleFileUpload = multer({ storage: inMemoryStorage });
-const aubio = require('aubiojs');
 
 const PORT = process.env.PORT;
 
